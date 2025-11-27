@@ -55,6 +55,11 @@ model Reservation {
   endAt       DateTime
   status      String   // confirm, cancel
   
+  // 변경 이력 관리 (Self-Relation)
+  previousCode String?  @unique // 이전 예약 코드 (1:1 관계)
+  previous     Reservation? @relation("ReservationHistory", fields: [previousCode], references: [code])
+  next         Reservation? @relation("ReservationHistory")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

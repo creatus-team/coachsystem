@@ -22,10 +22,15 @@ import { syncReservations } from "@/app/reservations/actions";
 
 export default async function ReservationsPage() {
     // 1. DB에서 예약 내역 조회
+    // next(다음 예약)가 없는 것만 조회 = 최신 예약이거나, 변경되지 않은 예약
     const reservations = await prisma.reservation.findMany({
+        where: {
+            next: null
+        },
         orderBy: { startAt: 'desc' },
         include: {
-            client: true // 고객 정보 포함
+            client: true, // 고객 정보 포함
+            previous: true // 이전 예약 정보 포함 (변경 이력 표시용)
         }
     });
 
@@ -71,6 +76,12 @@ export default async function ReservationsPage() {
                                                 {format(res.startAt, "HH:mm", { locale: ko })} -{" "}
                                                 {format(res.endAt, "HH:mm", { locale: ko })}
                                             </span>
+                                            {/* 변경된 예약인 경우 표시 */}
+                                            {res.previous && (
+                                                <span className="text-[10px] text-blue-600 mt-1">
+                                                    (기존: {format(res.previous.startAt, "MM/dd HH:mm")}에서 변경됨)
+                                                </span>
+                                            )}
                                         </div>
                                     </TableCell>
                                     <TableCell>{res.productName}</TableCell>

@@ -71,6 +71,47 @@ export async function syncReservations() {
             });
         }
 
+        // 2. 예약 변경(Reschedule) 연결 로직 (Heuristic Matching)
+        // 방금 처리한 예약들 중 'confirm' 상태인 것들을 대상으로 검사
+        for (const item of reservations) {
+            const schedule = item.schedule;
+            if (schedule?.status !== 'confirm') continue;
+
+            // 현재 예약 (DB에서 최신 정보 가져오기)
+            const currentRes = await prisma.reservation.findUnique({
+                where: { code: item.code },
+                include: { previous: true }
+            });
+
+            // 이미 연결된 예약이면 패스
+            if (!currentRes || currentRes.previous) continue;
+
+            // 매칭 후보 찾기: 동일 고객, 동일 상품, 'cancel' 상태, 아직 연결 안 된 것
+            // 시간 범위: 최근 24시간 내에 DB에 생성/수정된 취소 건 (넉넉하게 잡음)
+            const candidate = await prisma.reservation.findFirst({
+                where: {
+                    clientId: currentRes.clientId,
+                    productName: currentRes.productName,
+                    status: 'cancel',
+                    next: null, // 아직 다른 예약의 '이전'으로 연결되지 않은 것
+                    code: { not: currentRes.code }, // 자기 자신 제외
+                    // 간단한 휴리스틱: 최근에 업데이트된 취소 건을 찾음
+                    updatedAt: {
+                        gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // 24시간 이내
+                    }
+                },
+                orderBy: { updatedAt: 'desc' } // 가장 최근 취소 건
+            });
+
+            if (candidate) {
+                console.log(`🔗 Linking Reschedule: ${candidate.code} (Cancel) -> ${currentRes.code} (New)`);
+                await prisma.reservation.update({
+                    where: { code: currentRes.code },
+                    data: { previousCode: candidate.code }
+                });
+            }
+        }
+
         revalidatePath('/reservations');
     } catch (error) {
         console.error('❌ Sync failed:', error);

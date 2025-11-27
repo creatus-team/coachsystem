@@ -70,16 +70,32 @@ export function ReservationHistoryDialog({ reservation }: ReservationHistoryProp
                     <div>
                         <h4 className="mb-4 text-sm font-medium text-muted-foreground">히스토리 (History)</h4>
                         <div className="relative border-l border-muted pl-4 ml-2 space-y-6">
-                            {/* 타임라인 아이템 예시 */}
+                            {/* 이전 예약 (Rescheduled From) */}
+                            {reservation.previous && (
+                                <div className="relative">
+                                    <div className="absolute -left-[21px] h-2.5 w-2.5 rounded-full bg-gray-400" />
+                                    <div className="text-sm font-medium text-gray-600">이전 예약 (취소됨)</div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {format(new Date(reservation.previous.startAt), "yyyy-MM-dd HH:mm", { locale: ko })}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        ↓ 변경됨
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 현재 예약 생성 */}
                             <div className="relative">
                                 <div className="absolute -left-[21px] h-2.5 w-2.5 rounded-full bg-primary" />
-                                <div className="text-sm font-medium">예약이 생성되었습니다.</div>
+                                <div className="text-sm font-medium">
+                                    {reservation.previous ? "새로운 예약으로 변경됨" : "예약이 생성되었습니다."}
+                                </div>
                                 <div className="text-xs text-muted-foreground">
                                     {format(new Date(reservation.createdAt), "yyyy-MM-dd HH:mm", { locale: ko })}
                                 </div>
                             </div>
 
-                            {/* 추후 실제 로그 데이터 매핑 예정 */}
+                            {/* 현재 예약 취소 상태 */}
                             {reservation.status === 'cancel' && (
                                 <div className="relative">
                                     <div className="absolute -left-[21px] h-2.5 w-2.5 rounded-full bg-red-500" />
