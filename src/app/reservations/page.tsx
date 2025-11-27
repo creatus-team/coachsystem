@@ -16,6 +16,7 @@ import { revalidatePath } from "next/cache";
 import { whattimeApi } from "@/lib/whattime";
 import { ReservationHistoryDialog } from "@/components/reservations/history-dialog";
 import { SyncButton } from "@/components/reservations/sync-button";
+import { AutoRefresh } from "@/components/reservations/auto-refresh";
 
 import { syncReservations } from "@/app/reservations/actions";
 
@@ -33,6 +34,7 @@ export default async function ReservationsPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">예약 관리</h1>
                 <div className="flex items-center gap-2">
+                    <AutoRefresh />
                     <form action={syncReservations}>
                         <SyncButton />
                     </form>
