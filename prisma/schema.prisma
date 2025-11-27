@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 사용자 (관리자, 코치, 고객)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("CLIENT") // ADMIN, COACH, CLIENT
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  clientProfile ClientProfile?
+  reservations  Reservation[]  @relation("ClientReservations")
+  coachedSessions Reservation[] @relation("CoachReservations")
+  sessionLogs   SessionLog[]
+  settlements   Settlement[]
+}
+
+// 고객 프로필 (잔여 횟수 및 만료일 관리)
+model ClientProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalSessions     Int      @default(0) // 총 구매 횟수
+  remainingSessions Int      @default(0) // 잔여 횟수
+  expiresAt         DateTime?            // 만료일
+  lastSessionDate   DateTime?            // 마지막 세션 진행일
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// 예약 내역 (되는시간 API 연동)
+model Reservation {
+  code        String   @id // 되는시간 예약 코드 (Unique ID)
+  clientId    String?
+  client      User?    @relation("ClientReservations", fields: [clientId], references: [id])
+  coachId     String?
+  coach       User?    @relation("CoachReservations", fields: [coachId], references: [id])
+  
+  productName String?  // 상품명 (예: 1:1 코칭)
+  startAt     DateTime
+  endAt       DateTime
+  status      String   // confirm, cancel
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessionLogs SessionLog[]
+}
+
+// 세션 차감/지급 로그 (투명성 확보)
+model SessionLog {
+  id              String   @id @default(uuid())
+  clientId        String
+  client          User     @relation(fields: [clientId], references: [id])
+  
+  amount          Int      // 변동량 (+1, -1)
+  reason          String   // RESERVATION, CANCEL, EXPIRED, ADJUSTMENT, EXTENSION
+  description     String?  // 상세 사유
+  
+  reservationCode String?
+  reservation     Reservation? @relation(fields: [reservationCode], references: [code])
+  
+  createdAt       DateTime @default(now())
+}
+
+// 코치 정산 내역
+model Settlement {
+  id            String   @id @default(uuid())
+  coachId       String
+  coach         User     @relation(fields: [coachId], references: [id])
+  
+  year          Int
+  month         Int
+  totalSessions Int      @default(0)
+  totalAmount   Int      @default(0) // 정산 예정 금액
+  status        String   @default("PENDING") // PENDING, PAID
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([coachId, year, month])
+}

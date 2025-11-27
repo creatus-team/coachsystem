@@ -1,0 +1,19 @@
+/Users/hongseongjun/Desktop/성준/안티그래비티/코칭/coaching-web-app/node_modules/@prisma/client/src/runtime/utils/validatePrismaClientOptions.ts:213
+      throw new PrismaClientConstructorValidationError(
+            ^
+
+
+PrismaClientConstructorValidationError: Unknown property datasources provided to PrismaClient constructor.
+Read more at https://pris.ly/d/client-constructor
+    at validatePrismaClientOptions (/Users/hongseongjun/Desktop/성준/안티그래비티/코칭/coaching-web-app/node_modules/@prisma/client/src/runtime/utils/validatePrismaClientOptions.ts:213:13)
+    at new t (/Users/hongseongjun/Desktop/성준/안티그래비티/코칭/coaching-web-app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:242:9)
+    at <anonymous> (/Users/hongseongjun/Desktop/성준/안티그래비티/코칭/coaching-web-app/scripts/test-db.ts:3:16)
+    at Object.<anonymous> (/Users/hongseongjun/Desktop/성준/안티그래비티/코칭/coaching-web-app/scripts/test-db.ts:24:6)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object.transformer (/Users/hongseongjun/.npm/_npx/fd45a72a545557e9/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+
+Node.js v22.17.0

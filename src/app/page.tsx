@@ -1,65 +1,144 @@
-import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarDays, Users, AlertCircle, CheckCircle2 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
-export default function Home() {
+async function getDashboardStats() {
+  // 1. 오늘의 예약 건수
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const todayReservations = await prisma.reservation.count({
+    where: {
+      startAt: {
+        gte: today,
+        lt: tomorrow,
+      },
+      status: 'confirm',
+    },
+  });
+
+  // 2. 소멸 임박 고객 (잔여 횟수 > 0 이고 만료일이 3일 이내)
+  const threeDaysLater = new Date();
+  threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+
+  const expiringClients = await prisma.clientProfile.count({
+    where: {
+      remainingSessions: { gt: 0 },
+      expiresAt: {
+        lte: threeDaysLater,
+        gte: new Date(), // 이미 만료된 건 제외
+      },
+    },
+  });
+
+  // 3. 이번 달 확정된 세션 수 (매출 추정용)
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthlySessions = await prisma.reservation.count({
+    where: {
+      startAt: { gte: startOfMonth },
+      status: 'confirm',
+    },
+  });
+
+  return {
+    todayReservations,
+    expiringClients,
+    monthlySessions,
+  };
+}
+
+export default async function DashboardPage() {
+  const stats = await getDashboardStats();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">대시보드</h2>
+        <p className="text-muted-foreground">
+          코칭 시스템의 현재 상황을 한눈에 확인하세요.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">오늘의 예약</CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.todayReservations}건</div>
+            <p className="text-xs text-muted-foreground">
+              오늘 진행 예정인 코칭
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">소멸 임박 고객</CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {stats.expiringClients}명
+            </div>
+            <p className="text-xs text-muted-foreground">
+              3일 내 세션 소멸 예정
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">이번 달 진행</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.monthlySessions}회</div>
+            <p className="text-xs text-muted-foreground">
+              11월 누적 코칭 횟수
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">전체 고객</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">--명</div>
+            <p className="text-xs text-muted-foreground">
+              등록된 활성 고객 수
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>최근 예약 활동</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+              최근 예약 내역 리스트가 여기에 표시됩니다.
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>승인 대기 요청</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+              승인 대기 중인 요청이 없습니다.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
