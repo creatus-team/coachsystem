@@ -29,18 +29,31 @@ export async function syncReservations() {
             const product = item.product;
             const calendar = item.calendar;
 
-            // 이메일이 없으면 이름+전화번호로 고유 ID 생성 (동일 인물 식별용)
-            let email = schedule?.email;
-            const name = schedule?.name || '이름 없음';
-            const phone = schedule?.phone || '';
+            // 전화번호 정규화 함수
+            const normalizePhone = (p: string) => {
+                let cleaned = p.replace(/[^0-9]/g, ''); // 숫자만 남김
+                if (cleaned.startsWith('82')) {
+                    cleaned = '0' + cleaned.slice(2); // 82 -> 0으로 변경
+                }
+                return cleaned;
+            };
 
-            if (!email) {
-                // 이메일이 없는 경우: 이름과 전화번호를 조합하여 가짜 이메일 생성
-                // 예: no-email-홍길동-01012345678@example.com
-                // 전화번호에서 특수문자 제거
-                const cleanPhone = phone.replace(/[^0-9]/g, '');
-                const cleanName = name.replace(/\s/g, '_'); // 공백 제거
-                email = `no-email-${cleanName}-${cleanPhone || 'no-phone'}@example.com`;
+            const rawPhone = schedule?.phone || '';
+            const normalizedPhone = normalizePhone(rawPhone);
+            const name = schedule?.name || '이름 없음';
+
+            // 사용자 식별 ID 생성 (전화번호 1순위)
+            let email = '';
+            if (normalizedPhone.length >= 8) {
+                // 전화번호가 있으면 이를 고유 ID로 사용 (이메일 형식 준수)
+                email = `phone-${normalizedPhone}@coachsystem.internal`;
+            } else if (schedule?.email) {
+                // 전화번호가 없으면 이메일 사용
+                email = schedule.email;
+            } else {
+                // 둘 다 없으면 이름+코드 조합
+                const cleanName = name.replace(/\s/g, '_');
+                email = `no-id-${cleanName}-${item.code}@coachsystem.internal`;
             }
 
             const status = schedule?.status || 'confirm'; // 기본값 confirm (또는 unknown)
