@@ -29,9 +29,20 @@ export async function syncReservations() {
             const product = item.product;
             const calendar = item.calendar;
 
-            // 이메일이 없으면 가짜 이메일 생성 (데이터 누락 방지)
-            const email = schedule?.email || `no-email-${item.code}@example.com`;
+            // 이메일이 없으면 이름+전화번호로 고유 ID 생성 (동일 인물 식별용)
+            let email = schedule?.email;
             const name = schedule?.name || '이름 없음';
+            const phone = schedule?.phone || '';
+
+            if (!email) {
+                // 이메일이 없는 경우: 이름과 전화번호를 조합하여 가짜 이메일 생성
+                // 예: no-email-홍길동-01012345678@example.com
+                // 전화번호에서 특수문자 제거
+                const cleanPhone = phone.replace(/[^0-9]/g, '');
+                const cleanName = name.replace(/\s/g, '_'); // 공백 제거
+                email = `no-email-${cleanName}-${cleanPhone || 'no-phone'}@example.com`;
+            }
+
             const status = schedule?.status || 'confirm'; // 기본값 confirm (또는 unknown)
 
             // 상품명: product.name 또는 calendar.name 사용
